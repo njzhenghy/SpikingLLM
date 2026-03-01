@@ -1,0 +1,29 @@
+W6A6
+
+INFO |    Tasks    |Version|Filter|n-shot| Metric |Value |   |Stderr|
+|-------------|------:|------|-----:|--------|-----:|---|-----:|
+|winogrande   |      1|none  |     0|acc     |0.6875|±  |0.0130|
+|hellaswag    |      1|none  |     0|acc     |0.5405|±  |0.0050|
+|             |       |none  |     0|acc_norm|0.7430|±  |0.0044|
+|arc_challenge|      1|none  |     0|acc     |0.4369|±  |0.0145|
+|             |       |none  |     0|acc_norm|0.4556|±  |0.0146|
+|arc_easy     |      1|none  |     0|acc     |0.7643|±  |0.0087|
+|             |       |none  |     0|acc_norm|0.7378|±  |0.0090|
+|piqa         |      1|none  |     0|acc     |0.7693|±  |0.0098|
+|             |       |none  |     0|acc_norm|0.7693|±  |0.0098|
+
+
+
+W4A4
+
+INFO |    Tasks    |Version|Filter|n-shot| Metric |Value |   |Stderr|
+|-------------|------:|------|-----:|--------|-----:|---|-----:|
+|winogrande   |      1|none  |     0|acc     |0.4815|±  |0.0140|
+|hellaswag    |      1|none  |     0|acc     |0.2636|±  |0.0044|
+|             |       |none  |     0|acc_norm|0.2691|±  |0.0044|
+|arc_challenge|      1|none  |     0|acc     |0.2176|±  |0.0121|
+|             |       |none  |     0|acc_norm|0.2577|±  |0.0128|
+|arc_easy     |      1|none  |     0|acc     |0.2736|±  |0.0091|
+|             |       |none  |     0|acc_norm|0.2660|±  |0.0091|
+|piqa         |      1|none  |     0|acc     |0.5196|±  |0.0117|
+|             |       |none  |     0|acc_norm|0.5011|±  |0.0117|
