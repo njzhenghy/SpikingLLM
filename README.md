@@ -19,7 +19,7 @@ cd ..
 pip install -r requirements.txt
 ```
 
-pip install datasets==3.5.0 (解决数据集UTF-8编码bug，有bug再装)
+pip install datasets==3.5.0 
 ## Quantization
 We provide two example command to quantized `Llama-2-7B` and`Llama-3-8B` without fine-tuning:
 

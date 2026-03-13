@@ -33,33 +33,33 @@ def get_act_stat(model, dataloader, accumulate_type='max', prefixed_tokens=None,
     if online_had:
         had_K, K = hadamard_utils.get_hadK(model.config.intermediate_size)
     # ????????????????????????????
-    def stat_tensor(name, tensor, type):
-        hidden_dim = tensor.shape[-1]
-        tensor = tensor.view(-1, hidden_dim).abs().detach().unsqueeze (0)
-        # ema_factor = 0.99
-        # if accumulate_type == 'max':
-        #     comming_max = torch.max(tensor, dim=0)[0].float().cpu()
-        # elif accumulate_type == 'mean':
-        #     comming_max = torch.mean(tensor, dim=0).float().cpu()
-        key_name = f"{name}.{type}"
-        if key_name in act_stat:
-            act_stat[key_name] = torch.cat((act_stat[key_name], tensor.half()), 0)
-        else:
-            act_stat[key_name] = tensor.half()
-    # ????????????????????????????
     # def stat_tensor(name, tensor, type):
     #     hidden_dim = tensor.shape[-1]
-    #     tensor = tensor.view(-1, hidden_dim).abs().detach()
-    #     ema_factor = 0.99
-    #     if accumulate_type == 'max':
-    #         comming_max = torch.max(tensor, dim=0)[0].float().cpu()
-    #     elif accumulate_type == 'mean':
-    #         comming_max = torch.mean(tensor, dim=0).float().cpu()
+    #     tensor = tensor.view(-1, hidden_dim).abs().detach().unsqueeze (0)
+    #     # ema_factor = 0.99
+    #     # if accumulate_type == 'max':
+    #     #     comming_max = torch.max(tensor, dim=0)[0].float().cpu()
+    #     # elif accumulate_type == 'mean':
+    #     #     comming_max = torch.mean(tensor, dim=0).float().cpu()
     #     key_name = f"{name}.{type}"
     #     if key_name in act_stat:
-    #         act_stat[key_name] = ema_factor * act_stat[key_name] + (1-ema_factor) * comming_max
+    #         act_stat[key_name] = torch.cat((act_stat[key_name], tensor.half()), 0)
     #     else:
-    #         act_stat[key_name] = comming_max
+    #         act_stat[key_name] = tensor.half()
+    # ????????????????????????????
+    def stat_tensor(name, tensor, type):
+        hidden_dim = tensor.shape[-1]
+        tensor = tensor.view(-1, hidden_dim).abs().detach()
+        ema_factor = 0.99
+        if accumulate_type == 'max':
+            comming_max = torch.max(tensor, dim=0)[0].float().cpu()
+        elif accumulate_type == 'mean':
+            comming_max = torch.mean(tensor, dim=0).float().cpu()
+        key_name = f"{name}.{type}"
+        if key_name in act_stat:
+            act_stat[key_name] = ema_factor * act_stat[key_name] + (1-ema_factor) * comming_max
+        else:
+            act_stat[key_name] = comming_max
     # ????????????????????????????
     def stat_input_hook(m, x, y, name):
         if 'apply_rotary_pos_emb_qk_rotation_wrapper' in name:
@@ -117,7 +117,6 @@ def get_act_stat(model, dataloader, accumulate_type='max', prefixed_tokens=None,
 
 
 def wrap_to_phase_model(model, T):
-    #! 将LLM转换为基于相位编码的SNN模型
     '''
     replace nn.Linear and norm layer to correspond quantization counterparts
     '''
@@ -193,7 +192,7 @@ def init_input_neuron(args, model, activation_stat, logger=None, neuron_paramete
 
             if neuron_parameter is not None:
                 num_grains, genotype, neuron_d, tau, neuron_h, neuron_theta = neuron_parameter[f'{name}.input']
-                module.input_quantizer = FSNeuron(T=args.T, quantized_shape=quantized_shape, quantized_item_stat=input_stat, num_grains=num_grains, genotype=genotype, neuron_d=neuron_d, tau=tau, neuron_h=neuron_h, neuron_theta=neuron_theta)
+                module.input_quantizer = FSNeuron(T=args.T, quantized_shape=quantized_shape, quantized_item_stat=input_stat, num_grains=num_grains, genotype=genotype, neuron_d=neuron_d, tau=tau, neuron_h=neuron_h, neuron_theta=neuron_theta, spike_one=args.spike_one)
             else:
                 module.input_quantizer = FSNeuron(T=args.T, quantized_shape=quantized_shape, quantized_item_stat=input_stat)
                 # tau = module.input_quantizer.tau
@@ -208,7 +207,7 @@ def init_input_neuron(args, model, activation_stat, logger=None, neuron_paramete
 
             if neuron_parameter is not None:
                 num_grains, genotype, neuron_d, tau, neuron_h, neuron_theta = neuron_parameter[f'{name}.output']
-                module.output_quantizer = FSNeuron(T=args.T, quantized_shape=quantized_shape, quantized_item_stat=output_stat, num_grains=num_grains, genotype=genotype, neuron_d=neuron_d, tau=tau, neuron_h=neuron_h, neuron_theta=neuron_theta)
+                module.output_quantizer = FSNeuron(T=args.T, quantized_shape=quantized_shape, quantized_item_stat=output_stat, num_grains=num_grains, genotype=genotype, neuron_d=neuron_d, tau=tau, neuron_h=neuron_h, neuron_theta=neuron_theta, spike_one=args.spike_one)
             else:
                 module.output_quantizer = FSNeuron(T=args.T, quantized_shape=quantized_shape, quantized_item_stat=output_stat)
                 # tau = module.output_quantizer.tau
@@ -228,10 +227,10 @@ def init_out_neuron(args, model, activation_stat, logger=None, neuron_parameter=
             if neuron_parameter is not None:
                 if 'softmax_Identity' in name:
                     num_grains, genotype, neuron_d, tau, neuron_h, neuron_theta, neuron_v0 = neuron_parameter[f'{name}.input']
-                    module.input_quantizer = FSNeuron(T=args.T, quantized_shape=quantized_shape, quantized_item_stat=output_stat, num_grains=num_grains, genotype=genotype, neuron_d=neuron_d, tau=tau, neuron_h=neuron_h, neuron_theta=neuron_theta, neuron_v0=neuron_v0)
+                    module.input_quantizer = FSNeuron(T=args.T, quantized_shape=quantized_shape, quantized_item_stat=output_stat, num_grains=num_grains, genotype=genotype, neuron_d=neuron_d, tau=tau, neuron_h=neuron_h, neuron_theta=neuron_theta, neuron_v0=neuron_v0, spike_one=False)
                 else:
                     num_grains, genotype, neuron_d, tau, neuron_h, neuron_theta = neuron_parameter[f'{name}.input']
-                    module.input_quantizer = FSNeuron(T=args.T, quantized_shape=quantized_shape, quantized_item_stat=output_stat, num_grains=num_grains, genotype=genotype, neuron_d=neuron_d, tau=tau, neuron_h=neuron_h, neuron_theta=neuron_theta)
+                    module.input_quantizer = FSNeuron(T=args.T, quantized_shape=quantized_shape, quantized_item_stat=output_stat, num_grains=num_grains, genotype=genotype, neuron_d=neuron_d, tau=tau, neuron_h=neuron_h, neuron_theta=neuron_theta, spike_one=args.spike_one)
             else:
                 module.input_quantizer = FSNeuron(T=args.T, quantized_shape=quantized_shape, quantized_item_stat=output_stat)
                 # if ('softmax_Identity' in name):
@@ -249,10 +248,10 @@ def init_out_neuron(args, model, activation_stat, logger=None, neuron_parameter=
             if neuron_parameter is not None:
                 if 'silu_Identity' in name:
                     num_grains, genotype, neuron_d, tau, neuron_h, neuron_theta, neuron_v0 = neuron_parameter[f'{name}.input']
-                    module.input_quantizer = FSNeuron(T=args.T, quantized_shape=quantized_shape, quantized_item_stat=output_stat, num_grains=num_grains, genotype=genotype, neuron_d=neuron_d, tau=tau, neuron_h=neuron_h, neuron_theta=neuron_theta, neuron_v0=neuron_v0)
+                    module.input_quantizer = FSNeuron(T=args.T, quantized_shape=quantized_shape, quantized_item_stat=output_stat, num_grains=num_grains, genotype=genotype, neuron_d=neuron_d, tau=tau, neuron_h=neuron_h, neuron_theta=neuron_theta, neuron_v0=neuron_v0, spike_one=args.spike_one)
                 else:
                     num_grains, genotype, neuron_d, tau, neuron_h, neuron_theta = neuron_parameter[f'{name}.input']
-                    module.input_quantizer = FSNeuron(T=args.T, quantized_shape=quantized_shape, quantized_item_stat=output_stat, num_grains=num_grains, genotype=genotype, neuron_d=neuron_d, tau=tau, neuron_h=neuron_h, neuron_theta=neuron_theta)
+                    module.input_quantizer = FSNeuron(T=args.T, quantized_shape=quantized_shape, quantized_item_stat=output_stat, num_grains=num_grains, genotype=genotype, neuron_d=neuron_d, tau=tau, neuron_h=neuron_h, neuron_theta=neuron_theta, spike_one=args.spike_one)
             else:
                 module.input_quantizer = FSNeuron(T=args.T, quantized_shape=quantized_shape, quantized_item_stat=output_stat)
                 # tau = module.input_quantizer.tau
@@ -274,7 +273,7 @@ def init_out_neuron(args, model, activation_stat, logger=None, neuron_parameter=
 
         #     logger.info(f'output activation neuron: set {name}')
 
-    # torch.save(tau_dict, './tau_dict.pth')
+    # torch.save(tau_dict, '/home/ubuntu/solar/PhaseSNN/GrainAnalysis/activation_dir/Llama-2-7B-hf-8bit/tau_dict.pth')
 
 def set_quant_state(model, act_quant: bool = False):
     for m in model.modules():

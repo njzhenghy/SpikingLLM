@@ -1,1 +1,0 @@
-bash calibration.sh 2 4 3e-3 16 25 4

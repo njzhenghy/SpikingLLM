@@ -225,7 +225,7 @@ def get_redpajama(tokenizer, train_size, val_size, seed, seqlen, test_only=False
         traindata = load_dataset(loacal_dataset,split='train')   
         valdata = copy.deepcopy(traindata)
     except:
-        traindata = load_dataset("togethercomputer/RedPajama-Data-1T-Sample",split='train')   
+        traindata = load_dataset("ZengXiangyu/RedPajama-Data-1T-Sample",split='train')   
         valdata = copy.deepcopy(traindata)   
 
     if test_only:

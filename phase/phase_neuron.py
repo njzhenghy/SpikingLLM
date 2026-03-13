@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import sys
 from quantize.quantizer import round_ste, clamp_ste, floor_ste
-
+rate_list = []
 
 class _HeavisideSTE(torch.autograd.Function):
     @staticmethod
@@ -22,7 +22,7 @@ def heaviside_ste(x, beta=10.0):
 
 
 class FSNeuron(nn.Module):
-    def __init__(self, T: int, quantized_shape, quantized_item_stat, num_grains: int = 1, beta : float = 1.0, genotype : list = None, neuron_d : torch.Tensor = None, tau : float = 1.0, neuron_h : torch.Tensor = None, neuron_theta : torch.Tensor = None, neuron_v0 : float = 0.0):
+    def __init__(self, T: int, quantized_shape, quantized_item_stat, num_grains: int = 1, beta : float = 1.0, genotype : list = None, neuron_d : torch.Tensor = None, tau : float = 1.0, neuron_h : torch.Tensor = None, neuron_theta : torch.Tensor = None, neuron_v0 : float = 0.0, spike_one: bool = False):
         """
         Args:
             T: 总时间步数
@@ -34,7 +34,7 @@ class FSNeuron(nn.Module):
         
         if neuron_d is not None:
             self.d = nn.Parameter(neuron_d)
-            self.tau = tau
+            self.tau = nn.Parameter(torch.Tensor([tau]))
             self.h = nn.Parameter(neuron_h)
             self.theta = nn.Parameter(neuron_theta) 
         else:
@@ -52,7 +52,10 @@ class FSNeuron(nn.Module):
 
         self.v = None
 
-        self.v0 = neuron_v0
+        # self.v0 = nn.Parameter(torch.Tensor([neuron_v0])) 
+        self.v0 = nn.Parameter(torch.Tensor([0.5 * self.tau* 2**(-self.T)]))
+
+        self.spike_one = spike_one
 
     def _heaviside_ste(self, x, beta=10.0):
         return _HeavisideSTE.apply(x, beta)
@@ -61,11 +64,7 @@ class FSNeuron(nn.Module):
         assignment = []
         steps_per_grain = self.T // self.num_grains
         remainder = self.T % self.num_grains
-        
-        # for grain_idx in range(self.num_grains):
-        #     steps = steps_per_grain + (1 if grain_idx < remainder else 0)
-        #     assignment.extend([grain_idx] * steps)
-        
+          
         if genotype is not None:
             assignment = genotype
             return assignment
@@ -90,26 +89,49 @@ class FSNeuron(nn.Module):
 
         if spikes is None and x is not None:
             self.v = torch.zeros(x.shape[1:], dtype=x.dtype, device=x.device)
-            for t in range(self.T):
+            # zhy 修改
+            # for t in range(self.T):
+            #     self.v = self.v + x[t, ...]
+            for t in range(1):
                 self.v = self.v + x[t, ...]
-            
             v_sign = torch.sign(self.v)
-            self.v = self.v.abs() + self.v0
+            
+            # device = next(self.parameters()).device
+            self.v = self.v.abs() + self.v0.to(x.device)
+            # self.v = self.v.abs() + self.v0
+            # self.v = torch.zeros(x.shape[1:], dtype=x.dtype, device=x.device) + self.v0
 
             spikes = []
             for t in range(self.T):
+                # self.v = self.v + x[t, ...]
                 h = self.get_grain_power(t, mode='h')
                 theta = self.get_grain_power(t, mode='theta')
                 s_t = self._heaviside_ste(self.v - theta, self.beta)
                 spikes.append(s_t)
                 self.v = self.v - h * s_t
-            spikes = torch.stack(spikes, dim=0).reshape(T, bs, n, dim1)
-            
+            # zhy 修改
+            # spikes = torch.stack(spikes, dim=0).reshape(T, bs, n, dim1)
+            spikes = torch.stack(spikes, dim=0).reshape(self.T, bs, n, dim1)
+
+            if self.spike_one:
+                nonzero_mask = (spikes != 0)
+                cumsum_mask = torch.cumsum(nonzero_mask.int(), dim=0)
+                first_nonzero_mask = ((cumsum_mask <= 2) & nonzero_mask)
+                spikes = spikes * first_nonzero_mask
+        
+        # zhy 修改
+        # for t in range(self.T):
+        #     d = self.get_grain_power(t, mode='d')
+        #     y.append(v_sign * d * spikes[t])       
         for t in range(self.T):
             d = self.get_grain_power(t, mode='d')
-            y.append(v_sign * d * spikes[t])       
+            y.append(v_sign * d * spikes[t])  
 
-        y = torch.stack(y, dim=0).reshape(T, bs, n, dim1)
+        y = torch.stack(y, dim=0).sum(0).reshape(T, bs, n, dim1)
+        # nonzero_count = torch.count_nonzero(y)
+        # total_count = y.numel()
+        # ratio = nonzero_count / total_count
+        # rate_list.append(float(ratio))
         if return_spikes:
             return y, spikes
         return y

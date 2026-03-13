@@ -16,10 +16,10 @@ from utils import train_utils
 import utils.model_utils as model_utils
 import utils.rotation_utils as rotation_utils
 torch.backends.cudnn.benchmark = True
-
-# lzg新添加
 from phase.phase_util import wrap_to_phase_model, init_out_neuron, init_weight_quantizer, init_input_neuron, register_online_had, set_phase_model_time_step, get_act_stat
 from utils.snn_utils import replicate_past_key_values
+# from phase.phase_neuron import rate_list
+from phase.phase_calibration import calibration
 
 @torch.no_grad()
 def evaluate(model, tokenizer,prefixed_key_values, args, logger):
@@ -30,7 +30,8 @@ def evaluate(model, tokenizer,prefixed_key_values, args, logger):
     results_str=""
     if args.eval_ppl:
         # datasets = ["wikitext2", "c4"]
-        datasets = ["wikitext2"]
+        datasets = ["wikitext2", "c4", "redpajama", "pile"]
+        # datasets = ["wikitext2"]
         ppl_results = test_ppl(args, model, tokenizer, prefixed_key_values, datasets)
         for dataset in ppl_results:
             logger.info(f'{dataset} perplexity: {ppl_results[dataset]:.2f}')
@@ -78,14 +79,14 @@ def main():
     # -----------------model setting------------------------------------
     parser.add_argument("--model_path", type=str, help="model path")
     parser.add_argument("--model_name", type=str, default=None, help="model name, for the saving of corresponding data cache")
-    parser.add_argument("--cache_dir", default="./cache", type=str, help="cache dir of dataset, leading to faster debug")
+    parser.add_argument("--cache_dir", default="/home/public/shared_hf_cache/", type=str, help="cache dir of dataset, leading to faster debug")
     parser.add_argument("--output_dir", default="./log/", type=str, help="direction of logging file")
     parser.add_argument("--save_quant_dir", default=None, type=str, help="direction for saving quantization model")
     parser.add_argument("--real_quant", default=False, action="store_true",
                         help="use real quantization instead of fake quantization, can reduce memory footprint")
     parser.add_argument("--resume_quant", type=str, default=None, help="model path of resumed quantized model")
     # -----------------quantization setting------------------------------------
-    parser.add_argument("--wbits", type=int, default=16, help="quantization bits")
+    parser.add_argument("--wbits", type=int, default=8, help="quantization bits")
     parser.add_argument("--w_group_size", type=int, default=-1, help="quantization group size")
     parser.add_argument("--w_asym", dest="w_asym", action="store_true", help="Set w_asym to True")
     # parser.add_argument("--w_sym", dest="w_asym", action="store_false", help="Set w_asym to False")
@@ -124,8 +125,8 @@ def main():
     parser.add_argument("--outlier_threshold", type=int, default=64, help="\eta in Eq.(3), indicating the oitlier threshold ratio detect outlier tokens")
     parser.add_argument("--activation_clipping", action="store_true", help="layer-wise activation clipping for dynamic quantization")
     # -----------------training setting------------------------------------
-    parser.add_argument("--quant_lr", type=float, default=5e-5, help="lr of quantization parameters (s and z)")
-    parser.add_argument("--weight_lr", type=float, default=5e-6, help="lr of fp weights")
+    parser.add_argument("--quant_lr", type=float, default=4e-07, help="lr of quantization parameters (s and z)")
+    parser.add_argument("--weight_lr", type=float, default=4e-07, help="lr of fp weights")
     parser.add_argument("--min_lr_factor", type=float, default=10, help="min_lr = lr/min_lr_factor")
     parser.add_argument("--clip_grad", type=float, default=0.3)
     parser.add_argument("--wd", type=float, default=0, help="weight decay")
@@ -134,9 +135,9 @@ def main():
     parser.add_argument("--debug", action="store_true")
     parser.add_argument("--early_stop", type=int, default=0, help="early stoping after validation loss do not decrease")
     parser.add_argument("--constant_wlr", action="store_true")
-    parser.add_argument("--train_size", type=int, default=512, help="Number of calibration data samples.")
-    parser.add_argument("--val_size", type=int, default=64, help="Number of validation data samples.")
-    parser.add_argument("--training_seqlen", type=int, default=1024, help="lenth of the training sequence.")
+    parser.add_argument("--train_size", type=int, default=64, help="Number of calibration data samples.")
+    parser.add_argument("--val_size", type=int, default=8, help="Number of validation data samples.")
+    parser.add_argument("--training_seqlen", type=int, default=512, help="lenth of the training sequence.")
     parser.add_argument("--epochs", type=int, default=0)
     parser.add_argument("--calib_dataset",type=str, default="pile",
         choices=["wikitext2", "ptb", "c4", "mix", "redpajama", "pile"],
@@ -152,7 +153,7 @@ def main():
     parser.add_argument("--eval_ppl", action="store_true", help="evaluate perplexity on wikitext2 and c4 with 2048 context length")
     parser.add_argument("--eval_tasks", type=str,default="", help="exampe:piqa,arc_easy,arc_challenge,hellaswag,winogrande")
     parser.add_argument("--eval_batch_size", type=int, default=16)
-    parser.add_argument("--max_memory", type=str, default="20GiB", help="The maximum memory of each GPU")
+    parser.add_argument("--max_memory", type=str, default="7GiB", help="The maximum memory of each GPU")
     # ------------------ others ------------------------------------------
     parser.add_argument("--max_outlier", type=float, default=5, help="")
     parser.add_argument("--max_item_index", type=int, default=5, help="")
@@ -163,6 +164,7 @@ def main():
 
     parser.add_argument("--T", type=int, default=2, help="time step")
     parser.add_argument("--neuron_path", type=str, help="neuron path")
+    parser.add_argument("--spike_one", action="store_true", default=False, help="spike one")
 
     os.environ['TOKENIZERS_PARALLELISM'] = 'false'
     args = parser.parse_args()
@@ -260,40 +262,33 @@ def main():
                 prefixed_key_values = output.past_key_values
                 model.config.use_cache = use_cache
                 
-            # get activation statistic for activation quantization
-            #if include_static:
-                #assert args.input_mode == "static" or args.kv_mode == "static","mse_init require static quantization"
+            # ????????????????????????????
 
-            # ????????????????????????????
-            cal_dataloader, _ = get_loaders(
-            args.calib_dataset,
-            tokenizer,
-            train_size=5,
-            val_size=0,
-            seed=args.seed,
-            seqlen=512,
-            )
+            # cal_dataloader, _ = get_loaders(
+            # args.calib_dataset,
+            # tokenizer,
+            # train_size=5,
+            # val_size=0,
+            # seed=args.seed,
+            # seqlen=512,
+            # )
             activation_stat = get_act_stat(model, cal_dataloader, 'max', prefixed_tokens, args.down_online_had)
-            torch.save(activation_stat, f'/home/user/PhaseSNN/GrainAnalysis/activation_dir/Meta-Llama-3-8B/activation_stat.pth')
-            # ????????????????????????????
+            # torch.save(activation_stat, f'/home/ubuntu/solar/PhaseSNN/GrainAnalysis/activation_dir/Llama-2-7B-hf-{args.wbits}bit/activation_stat.pth')
+            # exit(0)
             if original_device == 'cpu':
                 remove_hook_from_module(model, recurse=True)
                 model = model.cpu()
-
-        set_phase_model_time_step(model, args.T, logger)
-
-        # init weight quantizer
-        # if args.wbits < 16:
-        #     logger.info('init weight quantizer')
-        #     init_weight_quantizer(args, model, logger)
+        
+        # During forward propagation, the model uses t=1 for acceleration.
+        set_phase_model_time_step(model=model, T=1, logger=logger)
 
         if args.neuron_path:
             logger.info('load neuron_parameter')
             neuron_parameter = torch.load(args.neuron_path)
         else:
             neuron_parameter = None
-            
-        # init input quantizer
+
+        # When passing through spiking neurons, t=args.T is used to approximate the spiking dynamics.
         logger.info('init input neuron')
         init_input_neuron(args, model, activation_stat, logger, neuron_parameter)
 
@@ -302,22 +297,42 @@ def main():
 
         print(model)
 
-        spike_prefixed_key_values = replicate_past_key_values(prefixed_key_values, args.T)
-
+        spike_prefixed_key_values = replicate_past_key_values(prefixed_key_values, T=1)
+        
         train_utils.cleanup_memory()
+
+        if args.epochs > 0:
+            logger.info("=== start quantization Training ===")
+            tick = time.time()  
+
+            cache_trainloader = f'{args.cache_dir}/dataloader_{args.model_name}_{args.calib_dataset}_{args.train_size}_{args.val_size}_{args.training_seqlen}_train.cache'
+            cache_valloader = f'{args.cache_dir}/dataloader_{args.model_name}_{args.calib_dataset}_{args.train_size}_{args.val_size}_{args.training_seqlen}_val.cache'
+            if os.path.exists(cache_trainloader) and os.path.exists(cache_valloader):
+                trainloader = torch.load(cache_trainloader)
+                logger.info(f"load trainloader from {cache_trainloader}")
+                valloader = torch.load(cache_valloader)
+                logger.info(f"load valloader from {cache_valloader}")
+            else:
+                trainloader, valloader = get_loaders(
+                    args.calib_dataset,
+                    tokenizer,
+                    args.train_size,
+                    args.val_size,
+                    seed=args.seed,
+                    seqlen=args.training_seqlen,
+                )
+                torch.save(trainloader, cache_trainloader)
+                torch.save(valloader, cache_valloader)
+
+            calibration(model, prefixed_key_values, spike_prefixed_key_values, args, trainloader, valloader, logger)
+
+            logger.info(time.time() - tick)
 
     model.half()
     torch.cuda.empty_cache()
-    # if args.save_quant_dir:
-    #     logger.info("start saving model")
-    #     model.save_pretrained(args.save_quant_dir)
-    #     tokenizer.save_pretrained(args.save_quant_dir)
-    #     torch.save(prefixed_key_values, os.path.join(args.save_quant_dir, 'prefixed_key_values.pth'))
-    #     quant_config = get_quant_config(args)
-    #     quant_config['prefixed_tokens'] = prefixed_tokens
-    #     train_utils.save_dict_as_json(quant_config, os.path.join(args.save_quant_dir, 'prefixequant_config.json'))
-    #     logger.info(f"save model to {args.save_quant_dir} success")
+    
     evaluate(model, tokenizer, spike_prefixed_key_values, args, logger)
+
 
 
 if __name__ == "__main__":

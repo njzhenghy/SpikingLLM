@@ -20,17 +20,7 @@ from utils.model_utils import get_kv_cache, mv_kv_cache
 from SNN.spike_neuron import LMHTNeuron
 from quantize.quantizer import UniformAffineQuantizer
 
-from phase_util import set_phase_model_time_step, set_quant_state
-
-# @torch.no_grad()
-# def update_dataset(layer, source_dataset, target_dataset, dev, attention_mask, position_ids, prefixed_key_values):
-#     with torch.cuda.amp.autocast():
-#         for index, inps in enumerate(source_dataset):
-#             inps = inps.to(dev)
-#             if len(inps.shape)==2:
-#                 inps = inps.unsqueeze(0)
-#             new_data = layer(inps, attention_mask=attention_mask, position_ids=position_ids, past_key_value=get_kv_cache(prefixed_key_values, bs=source_dataset.batch_size))[0].to('cpu')
-#             target_dataset.update_data(index,new_data)
+from phase.phase_util import set_phase_model_time_step, set_quant_state
 
 
 @torch.no_grad()
