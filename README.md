@@ -20,28 +20,20 @@ pip install -r requirements.txt
 ```
 
 pip install datasets==3.5.0 
-## Quantization
-We provide two example command to quantized `Llama-2-7B` and`Llama-3-8B` without fine-tuning:
+
+## ANN-to-SNN Conversion
+We provide two example commands to convert Llama-2-7B and Llama-3-8B to spiking neural networks:
 
 ```
-bash my_run_symquant_llama2.sh
+bash run_scripts/run_phase_ours_llama2.sh
+bash run_scripts/run_phase_ours_llama3.sh
 ```
-add `--epochs 20` to calibration quantized model.
+Optional arguments:
+* `--neuron_path` corresponds to the optimized phase coding base described in the paper (path located at `../GrainAnalysis/retrain_dir/`)
+* `--T` corresponds to the number of time steps for spiking neuronsgroup.
 
-
-add `--input_group_size 256` to divide matrix into different quantized group.
-
-## Conversion and Evaluation
-We provide a example command to convert the quantization model to SNN model
+Example with arguments:
 ```
-bash my_symquant_ann2snn.sh
+bash run_scripts/run_phase_ours_llama2.sh 0,1
 ```
-
-Use the following command to get and calibrate SNN model
-```
-bash calibration.sh
-```
-
-Details are as follows:
-- `--T`: time step.
-- `--wbits`, `--input_bits`: bits for quantization
+Note: `0,1` specifies the GPU indices (e.g., for A100 GPUs) to be used for the conversion process.
