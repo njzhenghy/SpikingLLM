@@ -1,20 +1,7 @@
 
-# Official PyTorch implement for Spiking LLM
+# Official implement for **[Distribution-Aware Multi-Granularity Phase Coding: Towards Lower Conversion Error for Spike-Driven Large Language Models](https://openreview.net/pdf?id=meDMftHUlX)** [ICLR 2026]
 
-## Citation
-
-If you find our work helpful, please consider citing our paper:
-
-**[Distribution-Aware Multi-Granularity Phase Coding: Towards Lower Conversion Error for Spike-Driven Large Language Models](https://openreview.net/pdf?id=meDMftHUlX)** ICLR 2026
-
-```bibtex
-@inproceedings{zhengdistribution,
-  title={Distribution-Aware Multi-Granularity Phase Coding: Towards Lower Conversion Error for Spike-Driven Large Language Models},
-  author={Zheng, Hanyuan and Zhang, Haozhen and Chen, Tianshuo and Liu, Zhaogeng and Chang, Yi and Gu, Bin},
-  booktitle={The Fourteenth International Conference on Learning Representations}
-}
-```
-
+![Overview](main_figure.jpg)
 ## Installation
 ```
 conda create -n prefixquant python==3.9.21
@@ -72,3 +59,15 @@ improved performance due to refined hyperparameter tuning.
 | LLaMA-3-8B | 6 | 3 | 7.79 | 70.80 | 48.81 | 74.96 | 79.05 |
 | LLaMA-3-8B | 8 | 2 | 6.34 | 72.93 | 54.01 | 77.44 | 80.63 | 
 | LLaMA-3-8B | 8 | 3 | 6.33 | 73.72 | 53.41 | 77.36 | 80.36 |
+
+## Citation
+
+If you find our work helpful, please consider citing our paper:
+
+```bibtex
+@inproceedings{zhengdistribution,
+  title={Distribution-Aware Multi-Granularity Phase Coding: Towards Lower Conversion Error for Spike-Driven Large Language Models},
+  author={Zheng, Hanyuan and Zhang, Haozhen and Chen, Tianshuo and Liu, Zhaogeng and Chang, Yi and Gu, Bin},
+  booktitle={The Fourteenth International Conference on Learning Representations}
+}
+```
