@@ -1,5 +1,5 @@
 
-# Official implement for **[Distribution-Aware Multi-Granularity Phase Coding: Towards Lower Conversion Error for Spike-Driven Large Language Models](https://openreview.net/pdf?id=meDMftHUlX)** [ICLR 2026]
+# Official implement for **[Distribution-Aware Multi-Granularity Phase Coding: Towards Lower Conversion Error for Spike-Driven Large Language Models](https://openreview.net/pdf/5255ebcb400a21b8843aecd0adfb598bce09871d.pdf)** [ICLR 2026]
 
 ![Overview](/main_figure.jpg)
 ## Installation
