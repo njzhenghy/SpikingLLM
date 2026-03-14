@@ -1,7 +1,7 @@
 
 # Official implement for **[Distribution-Aware Multi-Granularity Phase Coding: Towards Lower Conversion Error for Spike-Driven Large Language Models](https://openreview.net/pdf?id=meDMftHUlX)** [ICLR 2026]
 
-![Overview](./main_figure.jpg)
+![Overview](/main_figure.jpg)
 ## Installation
 ```
 conda create -n prefixquant python==3.9.21
