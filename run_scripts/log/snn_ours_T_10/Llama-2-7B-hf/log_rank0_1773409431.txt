@@ -297,3 +297,21 @@
 [2026-03-13 21:46:38 root] (phase_util.py 242): INFO input identity neuron: set model.layers.31.self_attn.softmax_Identity
 [2026-03-13 21:46:38 root] (phase_util.py 260): INFO input identity neuron: set model.layers.31.mlp.silu_Identity
 [2026-03-13 21:46:38 root] (train_utils.py 105): INFO GPU memory (from main): 13.62 -> 0.03 GB (-13.59 GB)
+[2026-03-13 23:21:19 huggingface_hub.repocard] (repocard.py 108): WARNING Repo card metadata block was not found. Setting CardData to empty.
+[2026-03-13 23:57:51 root] (phase_main.py 37): INFO wikitext2 perplexity: 5.50
+[2026-03-13 23:57:51 root] (phase_main.py 37): INFO c4 perplexity: 7.05
+[2026-03-13 23:57:51 root] (phase_main.py 37): INFO redpajama perplexity: 5.68
+[2026-03-13 23:57:51 root] (phase_main.py 37): INFO pile perplexity: 4.67
+[2026-03-13 23:57:57 lm-eval] (huggingface.py 118): WARNING `pretrained` model kwarg is not of type `str`. Many other model arguments may be ignored. Please do not launch via accelerate or use `parallelize=True` if passing an existing model this way.
+[2026-03-13 23:58:00 lm-eval] (huggingface.py 337): WARNING Passed an already-initialized model through `pretrained`, assuming single-process call to evaluate() or custom distributed integration
+[2026-03-13 23:58:05 lm-eval] (evaluator.py 131): INFO Setting random seed to 0 | Setting numpy seed to 1234 | Setting torch manual seed to 1234
+[2026-03-13 23:59:12 lm-eval] (evaluator.py 222): WARNING Overwriting default num_fewshot of winogrande from None to 0
+[2026-03-13 23:59:12 lm-eval] (task.py 395): INFO Building contexts for winogrande on rank 0...
+[2026-03-13 23:59:12 lm-eval] (evaluator.py 362): INFO Running loglikelihood requests
+[2026-03-14 00:02:20 root] (phase_main.py 55): INFO |  Tasks   |Version|Filter|n-shot|Metric|Value |   |Stderr|
+|----------|------:|------|-----:|------|-----:|---|-----:|
+|winogrande|      1|none  |     0|acc   |0.7048|±  |0.0128|
+
+[2026-03-14 00:02:20 root] (phase_main.py 67): INFO Average Acc: 70.48%
+[2026-03-14 00:02:20 root] (phase_main.py 68): INFO Average Acc (with norm): 70.48%
+[2026-03-14 00:02:20 root] (phase_main.py 69): INFO Results string: 5.50 7.05 5.68 4.67 70.48

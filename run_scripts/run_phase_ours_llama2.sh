@@ -1,7 +1,7 @@
 export HF_ENDPOINT="https://hf-mirror.com"
 export HF_HOME="/home/public/shared_hf_cache"
 gpu_no=$1
-T=${2:-10}
+T=${2:-8}
 
 bit=${3:-8}
 group_size=${4:-256}
@@ -32,8 +32,8 @@ cmd="$cmd ../phase_main.py \
 --set_prefixed_tokens \
 --max_memory 20GiB \
 --eval_ppl \
---eval_tasks winogrande \
---neuron_path ../GrainAnalysis/retrain_dir/Llama-2-7B-hf-T-10-grains-2-lr-0.0005/retrain.pth \
+--eval_tasks piqa,arc_easy,arc_challenge,winogrande  \
+--neuron_path ../GrainAnalysis/retrain_dir/Llama-2-7B-hf-T-8-grains-3-lr-0.0002/retrain.pth \
 --T $T"
 echo $cmd
 eval $cmd

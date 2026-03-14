@@ -29,9 +29,8 @@ def evaluate(model, tokenizer,prefixed_key_values, args, logger):
     prefixed_key_values = model_utils.mv_kv_cache(prefixed_key_values, model)
     results_str=""
     if args.eval_ppl:
-        # datasets = ["wikitext2", "c4"]
-        datasets = ["wikitext2", "c4", "redpajama", "pile"]
-        # datasets = ["wikitext2"]
+        # datasets = ["wikitext2", "c4", "redpajama", "pile"]
+        datasets = ["wikitext2"]
         ppl_results = test_ppl(args, model, tokenizer, prefixed_key_values, datasets)
         for dataset in ppl_results:
             logger.info(f'{dataset} perplexity: {ppl_results[dataset]:.2f}')
@@ -262,8 +261,7 @@ def main():
                 prefixed_key_values = output.past_key_values
                 model.config.use_cache = use_cache
                 
-            # ????????????????????????????
-
+            # get activation
             # cal_dataloader, _ = get_loaders(
             # args.calib_dataset,
             # tokenizer,
@@ -273,8 +271,10 @@ def main():
             # seqlen=512,
             # )
             activation_stat = get_act_stat(model, cal_dataloader, 'max', prefixed_tokens, args.down_online_had)
+            
             # torch.save(activation_stat, f'/home/ubuntu/solar/PhaseSNN/GrainAnalysis/activation_dir/Llama-2-7B-hf-{args.wbits}bit/activation_stat.pth')
             # exit(0)
+
             if original_device == 'cpu':
                 remove_hook_from_module(model, recurse=True)
                 model = model.cpu()

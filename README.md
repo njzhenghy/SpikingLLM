@@ -1,6 +1,20 @@
 
 # Official PyTorch implement for Spiking LLM
 
+## Citation
+
+If you find our work helpful, please consider citing our paper:
+
+**[Distribution-Aware Multi-Granularity Phase Coding: Towards Lower Conversion Error for Spike-Driven Large Language Models](https://openreview.net/pdf?id=meDMftHUlX)** ICLR 2026
+
+```bibtex
+@inproceedings{zhengdistribution,
+  title={Distribution-Aware Multi-Granularity Phase Coding: Towards Lower Conversion Error for Spike-Driven Large Language Models},
+  author={Zheng, Hanyuan and Zhang, Haozhen and Chen, Tianshuo and Liu, Zhaogeng and Chang, Yi and Gu, Bin},
+  booktitle={The Fourteenth International Conference on Learning Representations}
+}
+```
+
 ## Installation
 ```
 conda create -n prefixquant python==3.9.21
@@ -30,10 +44,31 @@ bash run_scripts/run_phase_ours_llama3.sh
 ```
 Optional arguments:
 * `--neuron_path` corresponds to the optimized phase coding base described in the paper (path located at `../GrainAnalysis/retrain_dir/`)
-* `--T` corresponds to the number of time steps for spiking neuronsgroup.
+* `--T` corresponds to the number of time steps for spiking neurons.
 
 Example with arguments:
 ```
 bash run_scripts/run_phase_ours_llama2.sh 0,1
 ```
-Note: `0,1` specifies the GPU indices (e.g., for A100 GPUs) to be used for the conversion process.
+Note: `0,1` specifies the GPU indices (e.g., for A100 GPUs) to be used for the conversion process. 
+
+The log file will be saved at: `run_scripts/log/*.txt`
+
+## Parameter Configuration  
+> Note: The results presented here reflect the latest optimized configuration. 
+Compared to the values reported in the original paper, current results show 
+improved performance due to refined hyperparameter tuning.
+
+| Model | T | Grain | Wiki2 | Wino | ArcC | ArcE | PiQA |
+|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+| LLaMA-2-7B |  8 | 2 | 6.50 | 70.56 | 46.33 | 73.70 | 78.35 |  
+| LLaMA-2-7B |  8 | 3 | 6.31 | 70.48 | 46.25 | 73.82 | 78.29 |
+| LLaMA-2-7B | 10 | 2 | 5.50 | 70.48 | 46.50 | 73.91 | 78.29 |  
+| LLaMA-2-7B | 10 | 3 | 5.50 | 70.48 | 46.33 | 73.86 | 78.35 |  
+
+| Model | T | Grain | Wiki2 | Wino | ArcC | ArcE | PiQA |
+|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+| LLaMA-3-8B | 6 | 2 |  |  |  |  |  |  |  
+| LLaMA-3-8B | 6 | 3 | 7.79 | 70.80 | 48.81 | 74.96 | 79.05 |
+| LLaMA-3-8B | 8 | 2 | |  |   |   |  |  |  
+| LLaMA-3-8B | 8 | 3 |  |  |  |  |  |  |  |  |  |  |  |  |
