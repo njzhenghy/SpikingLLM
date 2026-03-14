@@ -1,7 +1,7 @@
 export HF_ENDPOINT="https://hf-mirror.com"
 export HF_HOME="/home/public/shared_hf_cache"
 gpu_no=$1
-T=${2:-6}
+T=${2:-8}
 
 bit=${4:-8}
 group_size=${5:-256}
@@ -22,7 +22,7 @@ fi
 cmd="$cmd ../phase_main.py \
 --model_path $model_path \
 --model_name Llama-3-8B \
---output_dir ./log/snn_ours_T4/$model_name \
+--output_dir ./log/snn_ours_T_$T/$model_name \
 --wbits $bit \
 --mse_init \
 --pre_rotate \
@@ -32,7 +32,7 @@ cmd="$cmd ../phase_main.py \
 --max_memory 20GiB \
 --eval_ppl \
 --eval_tasks  piqa,arc_easy,arc_challenge,winogrande \
---neuron_path ../GrainAnalysis/retrain_dir/${model_name}-T-${T}-grains-2-lr-0.0008/retrain.pth \
+--neuron_path ../GrainAnalysis/retrain_dir/${model_name}-T-${T}-grains-3/retrain.pth \
 --T $T"
 echo $cmd
 eval $cmd
